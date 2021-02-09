@@ -62,7 +62,7 @@ class Data:
             "Тот, кто боится, что он будет страдать, уже страдает, потому что он боится.\n(c) Мишель де Мюнтень"
         ]
 
-    start_day = 25
+    start_day = 39
 
     short_weeks = {
         0: "Ч1",
@@ -115,6 +115,8 @@ class Data:
         9: "lessonName",
         10: "lessonName",
         11: "lessonName",
+        12: "lessonName",
+        13: "lessonName"
     }
 
     teachers = {
@@ -131,7 +133,10 @@ class Data:
         7: [["Name", "e@mail.com"]],
         8: [["Name", "e@mail.com"]],
         9: [["Name", "e@mail.com"]],
-        10: [["Name", "e@mail.com"]]
+        10: [["Name", "e@mail.com"]],
+        11: [["Name", "e@mail.com"]],
+        12: [["Name", "e@mail.com"]],
+        13: [["Name", "e@mail.com"]]
     }
 
     notification_kinds = {
@@ -190,53 +195,35 @@ class Schedule:
                 text += str(key) + ". " + self.get_lesson(data[key][0], data[key][1], self.get_time(key, kind)) + "\n"
         return text
 
-scheduleList = []
-scheduleList.append(Schedule())
+scheduleList = [Schedule(), Schedule(), Schedule(), Schedule()]
 
-scheduleList[0].lessons_location = {
-    1: ["location"],
-    2: ["location"],
-    3: ["location"],
-    4: ["location"],
-    5: ["location"],
-    6: ["location"],
-    7: ["location"],
-    8: ["location"],
-    9: ["location"],
-    10: ["location"],
-    11: ["location", "alocation", "blocation"],
-}
+def load():
 
-scheduleList[0].connection = {
-    1: {
-        1: [1, 1],
-        2: [1, 2],
-        3: [1, 3]
-    },
-    2: {
-        1: [2, 1],
-        4: [2, 1],
-        5: [2, 2],
-        6: [2, 3, 2]
-    },
-    3: {
-        4: [6, 1],
-        7: [1, 1]
-    },
-    4: {
-        1: [3, 1],
-        3: [2, 1],
-    },
-    5: {
-        2: [4, 1],
-        3: [5, 1],
-        4: [6, 3]
-    },
-    6: {
-        5: [7, 1],
-    }
-}
+    with open('/usr/local/bin/vkBot/locations.json', 'r', encoding='UTF8') as file:
+        locations = json.load(file)
+        for i in range(4):
+            scheduleList[i].lessons_location = locations[i]
+            scheduleList[i].lessons_location = {int(k): v for k, v in scheduleList[i].lessons_location.items()}
 
-scheduleList.append(scheduleList[0])
-scheduleList.append(scheduleList[0])
-scheduleList.append(scheduleList[0])
+    with open('/usr/local/bin/vkBot/schedules.json', 'r', encoding='UTF8') as file:
+        connections = json.load(file)
+        for i in range(4):
+            scheduleList[i].connection = connections[i]
+            for key in scheduleList[i].connection.keys():
+                scheduleList[i].connection[key] = {int(k): v for k, v in scheduleList[i].connection[key].items()}
+            scheduleList[i].connection = {int(k): v for k, v in scheduleList[i].connection.items()}
+
+def update_jsons():
+
+    locations_list = []
+    connections_list = []
+
+    for i in range(4):
+        locations_list.append(scheduleList[i].lessons_location)
+        connections_list.append(scheduleList[i].connection)
+
+    with open('/usr/local/bin/vkBot/locations.json', 'w', encoding='UTF8') as file:
+        json.dump(locations_list, file, ensure_ascii=False)
+
+    with open('/usr/local/bin/vkBot/schedules.json', 'w', encoding='UTF8') as file:
+        json.dump(connections_list, file, ensure_ascii=False)
