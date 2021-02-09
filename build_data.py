@@ -199,13 +199,13 @@ scheduleList = [Schedule(), Schedule(), Schedule(), Schedule()]
 
 def load():
 
-    with open('/usr/local/bin/vkBot/locations.json', 'r', encoding='UTF8') as file:
+    with open('data/locations.json', 'r', encoding='UTF8') as file:
         locations = json.load(file)
         for i in range(4):
             scheduleList[i].lessons_location = locations[i]
             scheduleList[i].lessons_location = {int(k): v for k, v in scheduleList[i].lessons_location.items()}
 
-    with open('/usr/local/bin/vkBot/schedules.json', 'r', encoding='UTF8') as file:
+    with open('data/schedules.json', 'r', encoding='UTF8') as file:
         connections = json.load(file)
         for i in range(4):
             scheduleList[i].connection = connections[i]
@@ -222,8 +222,8 @@ def update_jsons():
         locations_list.append(scheduleList[i].lessons_location)
         connections_list.append(scheduleList[i].connection)
 
-    with open('/usr/local/bin/vkBot/locations.json', 'w', encoding='UTF8') as file:
+    with open('data/locations.json', 'w', encoding='UTF8') as file:
         json.dump(locations_list, file, ensure_ascii=False)
 
-    with open('/usr/local/bin/vkBot/schedules.json', 'w', encoding='UTF8') as file:
+    with open('data/schedules.json', 'w', encoding='UTF8') as file:
         json.dump(connections_list, file, ensure_ascii=False)
