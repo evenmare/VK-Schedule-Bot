@@ -2,6 +2,7 @@ import vk_api
 import time
 import random
 import requests
+import json
 
 from threading import Thread
 from vk_api.utils import get_random_id
@@ -42,9 +43,12 @@ def dayFunc(day_of_week_now, type_of_week_now, week_message, event, request, key
                    'random_id': get_random_id(),
                    'message': request + ":\n" + day_message})
 
+load()
+
 # Основной цикл
 def event_listening():
 
+    from build_data import scheduleList as scheduleList
     # Словарь вида id - short_type_of_week для сохранения данных о выбранной неделе в "Расписание"
     user_selected_week = {}
 
@@ -217,6 +221,122 @@ def event_listening():
                                       {'peer_id': user_id, 'keyboard': main_keyboard.get_keyboard(),
                                        'random_id': get_random_id(),
                                        'message': "Сообщение от @evenmare:\n" + request[1:]})
+
+                    elif '^z' in request and event.user_id == admin_id:
+                        try:
+                            load()
+                            from build_data import scheduleList as scheduleList
+
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': 'Откат прошел успешно.'})
+
+                        except Exception:
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': 'Откат завершился с ошибкой.'})
+
+                    elif '^u' in request and event.user_id == admin_id:
+                        try:
+                            update_jsons()
+                            load()
+
+                            from build_data import scheduleList as scheduleList
+
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': 'Обновление прошло успешно.'})
+
+                        except Exception:
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': 'Обновление завершилось с ошибкой.'})
+
+                    elif '^' in request and event.user_id == admin_id:
+                        try:
+                            if len(change[2]) > 4:
+                                scheduleList[int(change[0])].connection[int(change[1])].update(
+                                    {int(change[2][0]): [int(change[2][1]), int(change[2][2]), int(change[2][4]) + 1]})
+                            else:
+                                scheduleList[int(change[0])].connection[int(change[1])].update(
+                                    {int(change[2][0]): [int(change[2][1]), int(change[2][2])]})
+
+                            if '.' in change[2][3]:
+                                scheduleList[int(change[0])].lessons_location[int(change[2][1])][
+                                    int(change[2][2]) - 1] = "💻 " + change[2][3]
+                            else:
+                                scheduleList[int(change[0])].lessons_location[int(change[2][1])][
+                                    int(change[2][2]) - 1] = change[2][3]
+
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': 'Обновлено.'})
+                        except:
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': 'При обновлении в словаре возникла ошибка.'})
+
+                    elif '*** ' in request and event.user_id == admin_id:
+                        try:
+                            change = [change[0], change[1]]
+                            change.append(request[4:].split(" "))
+
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': str(change[2][0]) + ". " + data.lessons[int(change[2][1])] + "\n" +
+                                                  data.lessons_type[int(change[2][2])] + "\n" + change[2][3]})
+
+                            if len(change[2]) > 4:
+                                vk.method('messages.send',
+                                          {'peer_id': admin_id,
+                                           'random_id': get_random_id(),
+                                           'message': data.lessons_time[3][int(change[2][4])][0]})
+
+                        except Exception:
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': 'Смешно?'})
+
+                    elif '** ' in request and event.user_id == admin_id:
+                        try:
+                            change = [change[0]]
+                            change.append(request[3])
+
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': data.days_of_week[int(change[1])]})
+
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': json.dumps(data.lessons, ensure_ascii=False)})
+
+                            if '/' in request:
+                                scheduleList[int(change[0])].connection.update({int(change[1]): {}})
+                                vk.method('messages.send',
+                                          {'peer_id': admin_id,
+                                           'random_id': get_random_id(),
+                                           'message': 'Обновлено.'})
+
+                        except Exception:
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': 'Смешно?'})
+
+
+                    elif "* " in request and event.user_id == admin_id:
+                        change = []
+                        change.append(request[2])
 
                     else:
                         vk.method('messages.send',
