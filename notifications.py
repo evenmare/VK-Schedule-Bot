@@ -26,16 +26,19 @@ def notificationFunc(): # главная функция для оповещен�
             type_of_week_now = (day_now - Info.Data.start_day) % 28 // 7
             day_of_week_now = time.localtime(time.time()).tm_wday + 1
 
-            if timeNotificationType != "morning" and timeNotificationType != "evening":
-                lessonLocation, lessonID, lessontypeID = searchingLesson(type_of_week_now, day_of_week_now, lessonNumber) # локация проведения занятий, номер названия пары для доступа к словарю, 
-                if lessonLocation != None:
-                    message = creatingShortMessage(timeNotificationType, type_of_week_now, lessonID, lessontypeID)
-                    sendingMessage(timeNotificationType, message, lessonLocation)
-            else:
-                if timeNotificationType == "evening":
-                    day_of_week_now += 1
-                message = creatingFullMessage(timeNotificationType, type_of_week_now, day_of_week_now)
-                sendingMessage(timeNotificationType, message)
+            if day_of_week_now != 7:
+
+                if timeNotificationType != "morning" and timeNotificationType != "evening":
+                    lessonLocation, lessonID, lessontypeID = searchingLesson(type_of_week_now, day_of_week_now,
+                                                                             lessonNumber)
+                    if lessonLocation != None:
+                        message = creatingShortMessage(timeNotificationType, type_of_week_now, lessonID, lessontypeID)
+                        sendingMessage(timeNotificationType, message, lessonLocation)
+                else:
+                    if timeNotificationType == "evening":
+                        day_of_week_now += 1
+                    message = creatingFullMessage(timeNotificationType, type_of_week_now, day_of_week_now)
+                    sendingMessage(timeNotificationType, message)
 
 def searchingTime(time_now):
     kind3 = 0
@@ -76,7 +79,7 @@ def searchingLesson(type_of_week_now, day_of_week_now, lesson_number):
         lessonID = scheduleList[type_of_week_now].connection[day_of_week_now][lesson_number][0]
         lessontypeID = scheduleList[type_of_week_now].connection[day_of_week_now][lesson_number][1]
         if len(scheduleList[type_of_week_now].lessons_location[lessonID]) != 1:
-            lessonLocation = scheduleList[type_of_week_now].lessons_location[lessonID][lessontypeID]
+            lessonLocation = scheduleList[type_of_week_now].lessons_location[lessonID][lessontypeID - 1]
         else:
             lessonLocation = scheduleList[type_of_week_now].lessons_location[lessonID][0]
 
