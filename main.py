@@ -84,12 +84,10 @@ def event_listening():
                         dayFunc(day_of_week_now, type_of_week_now_number, week_message, event, request)
 
                     elif request == "Следующая пара":
-
                         hrs_now = str(time.strftime("%X", time.localtime())[:2])
                         mins_now = str(time.strftime("%X", time.localtime())[3:5])
                         lessonNumber = 0
                         lessonTime = ""
-                        message = ""
 
                         if day_of_week_now == 7:
                             message += "Воскресение - пар нет"
@@ -103,17 +101,19 @@ def event_listening():
                             day_schedule = scheduleList[type_of_week_now_number].connection[day_of_week_now]
                             day_lesson_numbers = list(day_schedule.keys())
 
-                            for i in range(len(day_lesson_numbers)):
-                                checkingTime = data.lessons_time[day_lesson_numbers[i]]
-                                if day_lesson_numbers[i] == 3:
+                            for i in day_lesson_numbers:
+                                checkingTime = data.lessons_time[i]
+                                if i == 3:
                                     if len(day_schedule[3]) == 3:
                                         checkingTime = checkingTime[day_schedule[3][2] - 1]
                                     else:
                                         checkingTime = checkingTime[0]
                                 checkingTime = checkingTime[0]
+                                print(i, checkingTime[:2], checkingTime[3:5], hrs_now, mins_now)
                                 if hrs_now < checkingTime[:2] or (hrs_now == checkingTime[:2] and mins_now < checkingTime[3:5]):
-                                    lessonNumber = day_lesson_numbers[i]
+                                    lessonNumber = i
                                     lessonTime = checkingTime
+                                    break
 
                             if lessonNumber == 0:
                                 message += "На сегодня пар больше не осталось!"
