@@ -1,5 +1,4 @@
 import schedule
-import requests
 import time
 import vk_api
 import build_data as Info
@@ -12,13 +11,14 @@ from private import connectDB as connectDB
 
 vk = vk_api.VkApi(token=token)
 
-def updateConnection(): # обновление подключения к БД
+def updateConnection():
     build_personal_data.dbConnection = connectDB()
 
-def notificationFunc(): # главная функция для оповещений
+def notificationFunc():
     timeNow = time.strftime("%X", time.localtime())[:-3]
+
     if timeNow in Info.Data.Notification.notifications_time_list:
-        timeNotificationType, lessonNumber, kind3 = searchingTime(timeNow)                                              # вид оповещений, номер пары, тип третьей пары
+        timeNotificationType, lessonNumber, kind3 = searchingTime(timeNow)
 
         if timeNotificationType != False:
 
@@ -29,8 +29,7 @@ def notificationFunc(): # главная функция для оповещен�
             if day_of_week_now != 7:
 
                 if timeNotificationType != "morning" and timeNotificationType != "evening":
-                    lessonLocation, lessonID, lessontypeID = searchingLesson(type_of_week_now, day_of_week_now,
-                                                                             lessonNumber)
+                    lessonLocation, lessonID, lessontypeID = searchingLesson(type_of_week_now, day_of_week_now, lessonNumber, kind3, timeNow)
                     if lessonLocation != None:
                         message = creatingShortMessage(timeNotificationType, type_of_week_now, lessonID, lessontypeID)
                         sendingMessage(timeNotificationType, message, lessonLocation)
@@ -52,7 +51,7 @@ def searchingTime(time_now):
             else:
                 if Info.Data.Notification.notifications_time[i][0][0] == time_now:
                     lesson_number = 3; kind3 = 0
-                elif Info.Data.Notification.notifications_time[i][1][0] == time_now:
+                elif Info.Data.Notification.notifications_time[i][0][1] == time_now:
                     lesson_number = 3; kind3 = 1
     elif time_now[-1] == "5":
         time_notification_type = "5min"
@@ -61,10 +60,10 @@ def searchingTime(time_now):
                 if Info.Data.Notification.notifications_time[i][1] == time_now:
                    lesson_number = i
             else:
-                if Info.Data.Notification.notifications_time[i][0][1] == time_now:
-                    lesson_number = 3; kind3 = 1
+                if Info.Data.Notification.notifications_time[i][1][0] == time_now:
+                    lesson_number = 3; kind3 = 0
                 elif Info.Data.Notification.notifications_time[i][1][1] == time_now:
-                    lesson_number = 3; kind3 = 2
+                    lesson_number = 3; kind3 = 1
     elif time_now == Info.Data.Notification.notifications_time["evening"]:
         time_notification_type = "evening"
     elif time_now == Info.Data.Notification.notifications_time["morning"]:
@@ -74,10 +73,18 @@ def searchingTime(time_now):
 
     return time_notification_type, lesson_number, kind3
 
-def searchingLesson(type_of_week_now, day_of_week_now, lesson_number):
+def searchingLesson(type_of_week_now, day_of_week_now, lesson_number, kind3, timeNow):
     if lesson_number in scheduleList[type_of_week_now].connection[day_of_week_now]:
+        if lesson_number == 3:
+            try:
+                if kind3 != scheduleList[type_of_week_now].connection[day_of_week_now][lesson_number][2]:
+                    return None, None, None
+            except IndexError:
+                if Info.Data.Notification.notifications_time[3][0][1] == timeNow or Info.Data.Notification.notifications_time[3][1][1] == timeNow:
+                    return None, None, None
         lessonID = scheduleList[type_of_week_now].connection[day_of_week_now][lesson_number][0]
         lessontypeID = scheduleList[type_of_week_now].connection[day_of_week_now][lesson_number][1]
+
         if len(scheduleList[type_of_week_now].lessons_location[lessonID]) != 1:
             lessonLocation = scheduleList[type_of_week_now].lessons_location[lessonID][lessontypeID - 1]
         else:
