@@ -10,10 +10,11 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 
 import vk_keyboards
 from private import token as token
-from private import admin_id as admin_id
 from build_data import scheduleList as scheduleList
 from build_data import Data as data
+from build_data import load, update_jsons
 from notifications import startNotificationService
+from private import admin_id as admin_id
 
 # Авторизуемся как сообщество
 vk = vk_api.VkApi(token=token)
@@ -24,9 +25,9 @@ longpoll = VkLongPoll(vk)
 # Клавиатуры
 main_keyboard = vk_keyboards.mainKeyboard()
 settings_keyboard = vk_keyboards.settingsKeyboard()
-schedule_keyboard = vk_keyboards.scheduleKeyboard # это - функция
+schedule_keyboard = vk_keyboards.scheduleKeyboard
+donate_keyboard = vk_keyboards.donateKeyboard()
 
-# Создание сообщения с расписанием на конкретный день (см. кнопки "Сегодня", "Завтра")
 def dayFunc(day_of_week_now, type_of_week_now, week_message, event, request, keyboard=main_keyboard):
     day_message = week_message
 
@@ -48,37 +49,39 @@ load()
 # Основной цикл
 def event_listening():
 
-    from build_data import scheduleList as scheduleList
-    # Словарь вида id - short_type_of_week для сохранения данных о выбранной неделе в "Расписание"
     user_selected_week = {}
+    from build_data import scheduleList as scheduleList
 
     try:
 
         for event in longpoll.listen():
 
             from notifications import build_personal_data as person
-
             # Если пришло новое сообщение
-            if event.type == VkEventType.MESSAGE_NEW:
+            if event.type == VkEventType.MESSAGE_NEW and event.to_me:
 
+                # Если оно имеет метку для меня( то есть бота)
                 if event.to_me:
 
-                    personID = event.user_id                                                                            # ID пользователя
-                    personName = vk.method("users.get", {"user_ids": personID})[0]['first_name']                        # Имя пользователя
-                    day_now = time.localtime(time.time()).tm_yday                                                       ## День в году сейчас (используется для определения типа недели)
-                    day_of_week_now = time.localtime(time.time()).tm_wday + 1                                           # День недели сейчас
-                    type_of_week_now_number = (day_now - data.start_day) % 28 // 7                                      ## Номер типа недели в семестре сейчас (для доступа к словарю)
-                    type_of_week_now = data.weeks[type_of_week_now_number]                                              # Название типа недели в семестре
-                    short_type_of_week_now = data.short_weeks[type_of_week_now_number]                                  # Короткое название типа недели в семестре
-                    number_of_week_now = (day_now - data.start_day) // 7 + 1                                            # Номер недели сейчас
-                    week_message = "Неделя " + str(number_of_week_now) + ", " + type_of_week_now + "\n"                 # Стандартный текст для сообщения: Неделя, тип недели
+                    personID = event.user_id
+                    personName = user = vk.method("users.get", {"user_ids": personID})[0]['first_name']
+                    day_now = time.localtime(time.time()).tm_yday
+                    day_of_week_now = time.localtime(time.time()).tm_wday + 1
+                    type_of_week_now_number = (day_now - data.start_day) % 28 // 7
+                    type_of_week_now = data.weeks[type_of_week_now_number]
+                    short_type_of_week_now = data.short_weeks[type_of_week_now_number]
+                    number_of_week_now = (day_now - data.start_day) // 7 + 1
+                    week_message = "Неделя " + str(number_of_week_now) + ", " + type_of_week_now + "\n"
+                    message = ""
 
-                    if event.user_id in user_selected_week.keys():                                                      # Случай, когда в "Расписание" пользователь выбрал неделю, отличную от настоящей
+                    if event.user_id in user_selected_week.keys():
                         short_type_of_week_now = user_selected_week[event.user_id]
                         type_of_week_now_number = list(data.short_weeks.values()).index(short_type_of_week_now)
                         week_message = data.weeks[type_of_week_now_number] + "\n"
 
-                    request = event.text
+                    request = str(event.text).lower()
+                    if len(request) > 1:
+                        request = request.upper()[0] + request[1:]
 
                     if request == "Сегодня":
                         dayFunc(day_of_week_now, type_of_week_now_number, week_message, event, request)
@@ -205,83 +208,6 @@ def event_listening():
                                    'random_id': get_random_id(),
                                    'message': data.Educate.phrases[random.randint(0, len(data.Educate.phrases) - 1)]})
 
-                    elif "//" in request:
-                        vk.method('messages.send', {'peer_id': admin_id, 'keyboard': settings_keyboard.get_keyboard(),
-                                                    'random_id': get_random_id(),
-                                                    'message': "СООБЩЕНИЕ ОБ ОШИБКЕ \n @id" + str(event.user_id) + "\n" + request})
-                        vk.method('messages.send',
-                                  {'peer_id': event.user_id, 'keyboard': settings_keyboard.get_keyboard(),
-                                   'random_id': get_random_id(),
-                                   'message': "Сообщение отправлено. Спасибо!"})
-
-                    elif "%" in request and event.user_id == admin_id:
-                        users = person.selectAllUsers()
-                        for user_id in users:
-                            vk.method('messages.send',
-                                      {'peer_id': user_id, 'keyboard': main_keyboard.get_keyboard(),
-                                       'random_id': get_random_id(),
-                                       'message': "Сообщение от @evenmare:\n" + request[1:]})
-
-                    elif '^z' in request and event.user_id == admin_id:
-                        try:
-                            load()
-                            from build_data import scheduleList as scheduleList
-
-                            vk.method('messages.send',
-                                      {'peer_id': admin_id,
-                                       'random_id': get_random_id(),
-                                       'message': 'Откат прошел успешно.'})
-
-                        except Exception:
-                            vk.method('messages.send',
-                                      {'peer_id': admin_id,
-                                       'random_id': get_random_id(),
-                                       'message': 'Откат завершился с ошибкой.'})
-
-                    elif '^u' in request and event.user_id == admin_id:
-                        try:
-                            update_jsons()
-                            load()
-
-                            from build_data import scheduleList as scheduleList
-
-                            vk.method('messages.send',
-                                      {'peer_id': admin_id,
-                                       'random_id': get_random_id(),
-                                       'message': 'Обновление прошло успешно.'})
-
-                        except Exception:
-                            vk.method('messages.send',
-                                      {'peer_id': admin_id,
-                                       'random_id': get_random_id(),
-                                       'message': 'Обновление завершилось с ошибкой.'})
-
-                    elif '^' in request and event.user_id == admin_id:
-                        try:
-                            if len(change[2]) > 4:
-                                scheduleList[int(change[0])].connection[int(change[1])].update(
-                                    {int(change[2][0]): [int(change[2][1]), int(change[2][2]), int(change[2][4]) + 1]})
-                            else:
-                                scheduleList[int(change[0])].connection[int(change[1])].update(
-                                    {int(change[2][0]): [int(change[2][1]), int(change[2][2])]})
-
-                            if '.' in change[2][3]:
-                                scheduleList[int(change[0])].lessons_location[int(change[2][1])][
-                                    int(change[2][2]) - 1] = "💻 " + change[2][3]
-                            else:
-                                scheduleList[int(change[0])].lessons_location[int(change[2][1])][
-                                    int(change[2][2]) - 1] = change[2][3]
-
-                            vk.method('messages.send',
-                                      {'peer_id': admin_id,
-                                       'random_id': get_random_id(),
-                                       'message': 'Обновлено.'})
-                        except:
-                            vk.method('messages.send',
-                                      {'peer_id': admin_id,
-                                       'random_id': get_random_id(),
-                                       'message': 'При обновлении в словаре возникла ошибка.'})
-
                     elif '*** ' in request and event.user_id == admin_id:
                         try:
                             change = [change[0], change[1]]
@@ -338,6 +264,111 @@ def event_listening():
                         change = []
                         change.append(request[2])
 
+                        vk.method('messages.send',
+                                  {'peer_id': admin_id,
+                                   'random_id': get_random_id(),
+                                   'message': data.short_weeks[int(change[0])]})
+
+                    elif "//" in request:
+                        vk.method('messages.send', {'peer_id': admin_id, 'keyboard': settings_keyboard.get_keyboard(),
+                                                    'random_id': get_random_id(),
+                                                    'message': "СООБЩЕНИЕ ОБ ОШИБКЕ \n @id" + str(event.user_id) + "\n" + request})
+                        vk.method('messages.send',
+                                  {'peer_id': event.user_id, 'keyboard': settings_keyboard.get_keyboard(),
+                                   'random_id': get_random_id(),
+                                   'message': "Сообщение отправлено. Спасибо!"})
+
+                    elif "%" in request and event.user_id == admin_id:
+                        users = person.selectAllUsers()
+                        for user_id in users:
+                            vk.method('messages.send',
+                                      {'peer_id': user_id, 'keyboard': main_keyboard.get_keyboard(),
+                                       'random_id': get_random_id(),
+                                       'message': "Сообщение от @evenmare:\n" + request[1:]})
+
+                    elif '^z' in request and event.user_id == admin_id:
+                        try:
+                            load()
+                            from build_data import scheduleList as scheduleList
+
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': 'Откат прошел успешно.'})
+
+                        except Exception:
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': 'Откат завершился с ошибкой.'})
+
+                    elif '^u' in request and event.user_id == admin_id:
+                        try:
+                            update_jsons()
+                            load()
+
+                            from build_data import scheduleList as scheduleList
+
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': 'Обновление прошло успешно.'})
+
+                        except Exception:
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': 'Обновление завершилось с ошибкой.'})
+
+                    elif '^' in request and event.user_id == admin_id:
+                        try:
+                            if len(change[2]) > 4:
+                                scheduleList[int(change[0])].connection[int(change[1])].update({int(change[2][0]): [int(change[2][1]), int(change[2][2]), int(change[2][4]) + 1]})
+                            else:
+                                scheduleList[int(change[0])].connection[int(change[1])].update({int(change[2][0]): [int(change[2][1]), int(change[2][2])]})
+
+                            if '.' in change[2][3]:
+                                scheduleList[int(change[0])].lessons_location[int(change[2][1])][int(change[2][2]) - 1] = "💻 " + change[2][3]
+                            else:
+                                scheduleList[int(change[0])].lessons_location[int(change[2][1])][int(change[2][2]) - 1] = change[2][3]
+
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': 'Обновлено.'})
+                        except:
+                            vk.method('messages.send',
+                                      {'peer_id': admin_id,
+                                       'random_id': get_random_id(),
+                                       'message': 'При обновлении в словаре возникла ошибка.'})
+
+                    elif request == "Поддержать":
+                        vk.method('messages.send',
+                                  {'peer_id': event.user_id, 'keyboard': donate_keyboard.get_keyboard(),
+                                   'random_id': get_random_id(),
+                                   'message': "Буду очень благодарен!"})
+
+                    elif request == "Зачем?":
+                        vk.method('messages.send',
+                                  {'peer_id': event.user_id, 'keyboard': donate_keyboard.get_keyboard(),
+                                   'random_id': get_random_id(),
+                                   'message': "Для работы бота необходима постоянная работа сервера. Сервер каждый месяц нуждается в оплате. " +
+                                   "Если вам правда нравится сервис, помогите автору в его содержании. Буду любить вас ещё больше <3"})
+
+                    elif request == "Сколько?":
+                        vk.method('messages.send',
+                                  {'peer_id': event.user_id, 'keyboard': donate_keyboard.get_keyboard(),
+                                   'random_id': get_random_id(),
+                                   'message': "Не имеет значения. " +
+                                              "Главное для меня, чтобы это было от души."})
+
+                    elif request == "Команды":
+                        vk.method('messages.send',
+                                  {'peer_id': event.user_id,
+                                   'random_id': get_random_id(),
+                                   'message': "Список команд:\n- Сегодня\n- Завтра\n- Следующая пара\n- Ч1/З1/Ч2/З2 (выбор недели, чтобы сбросить на текущую - Главная)\n- <День недели>"+
+                                   "\n- Подключить/Отключить (подключение/отключение уведомлений)\n - Вечерние/Утренние/За 30 минут/За 5 минут/Очные/Дистанционные (включить/выключить уведомления)"})
+
                     else:
                         vk.method('messages.send',
                                   {'peer_id': event.user_id, 'keyboard': main_keyboard.get_keyboard(),
@@ -347,7 +378,10 @@ def event_listening():
                     if request not in list(data.days_of_week.values()) and request not in data.short_weeks.values() and event.user_id in user_selected_week.keys():
                         user_selected_week.pop(event.user_id)
 
-    except requests.exceptions.RequestException:
+    except requests.exceptions:
+        vk.method('messages.send', {'peer_id': admin_id,
+                                    'random_id': get_random_id(),
+                                    'message': "СООБЩЕНИЕ ОБ ОШИБКЕ\nReadTimeException"})
         event_listening()
 
 thread1 = Thread(target=event_listening)
