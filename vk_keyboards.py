@@ -1,12 +1,9 @@
-import vk_api
-
 from build_data import Data
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 from vk_api.utils import get_random_id
-from private import token as token
 from notifications import build_personal_data as person
 
-vk = vk_api.VkApi(token=token)
+from vk_connection import vk as vk
 
 def mainKeyboard():
     main_keyboard = VkKeyboard(one_time=True)
@@ -63,6 +60,7 @@ def settingsKeyboard():
     settings_keyboard.add_button('Уведомления')
     settings_keyboard.add_line()
 
+    settings_keyboard.add_openlink_button('GitHub', 'https://github.com/evenmare/VK-Schedule-Bot')
     settings_keyboard.add_button('Сообщить об ошибке', color=VkKeyboardColor.NEGATIVE)
     settings_keyboard.add_line()
 
