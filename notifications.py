@@ -1,23 +1,22 @@
 import schedule
 import time
-import vk_api
 import build_data as Info
 
 from build_personal_data import buildClass as build_personal_data
 from vk_api.utils import get_random_id
 from build_data import scheduleList as scheduleList
-from private import token
 from private import connectDB as connectDB
 
-vk = vk_api.VkApi(token=token)
+from vk_connection import vk as vk
 
 def updateConnection():
     build_personal_data.dbConnection = connectDB()
 
 def notificationFunc():
+
     timeNow = time.strftime("%X", time.localtime())[:-3]
 
-    if timeNow in Info.Data.Notification.notifications_time_list:
+    if timeNow in Info.Data.Notification.notifications_time_list and Info.Data.Notification.status is True:
         timeNotificationType, lessonNumber, kind3 = searchingTime(timeNow)
 
         if timeNotificationType != False:
@@ -125,6 +124,7 @@ def sendingMessage(timeTypeNotification, message, locationTypeNotification=None)
                 True
 
 def startNotificationService():
+    notificationFunc()
     for element in Info.Data.Notification.notifications_time_list:
         schedule.every().day.at(element).do(notificationFunc)
     schedule.every().hour.do(updateConnection)
