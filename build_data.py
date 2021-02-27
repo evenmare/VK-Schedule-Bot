@@ -1,11 +1,15 @@
+import json
+
 class Data:
 
     class Notification:
 
+        status = True
+
         notifications_time = {
             1: ["08:30", "08:55"],
             2: ["10:10", "10:35"],
-            3: [["11:50", "12:15"], ["12:20", "12:45"]],
+            3: [["11:50", "12:20"], ["12:15", "12:45"]],
             4: ["14:00", "14:25"],
             5: ["15:40", "16:05"],
             6: ["17:50", "18:15"],
@@ -90,7 +94,8 @@ class Data:
     lessons_type = {
         1: "Лекция",
         2: "Семинар",
-        3: "Лабораторная"
+        3: "Лабораторная",
+        4: ""
     }
 
     lessons_time = {
@@ -171,20 +176,23 @@ class Schedule:
             return "(" + list(Data.lessons_time.values())[lesson_time - 1][0] + " - " + list(Data.lessons_time.values())[lesson_time - 1][1] + ")"
 
     def get_teacher(self, lesson, lesson_type):
-        if len(Data.teachers[lesson]) == 1:
-            lesson_type = 0
-        return Data.teachers[lesson][lesson_type][0] + " (" + Data.teachers[lesson][lesson_type][1] + ")"
+        if lesson in Data.teachers.keys():
+            if len(Data.teachers[lesson]) == 1:
+                lesson_type = 0
+            return Data.teachers[lesson][lesson_type][0] + " (" + Data.teachers[lesson][lesson_type][1] + ")"
+        else:
+            return ""
 
     def get_lesson(self, lesson, lesson_type, time=""):
         if len(self.lessons_location[lesson]) == 1:
             return Data.lessons[lesson] + "\n" + Data.lessons_type[lesson_type] + " " + time + "\n" + self.lessons_location[lesson][0] + "\n" + self.get_teacher(lesson, lesson_type - 1) + "\n"
         else:
-            return Data.lessons[lesson] + "\n" + Data.lessons_type[lesson_type] + " " + time + "\n" + self.lessons_location[lesson][lesson_type - 1] + self.get_teacher(lesson, lesson_type - 1) + "\n"
+            return Data.lessons[lesson] + "\n" + Data.lessons_type[lesson_type] + " " + time + "\n" + self.lessons_location[lesson][lesson_type - 1] + "\n" + self.get_teacher(lesson, lesson_type - 1) + "\n"
 
     def get_full_on_a_day(self, day):
         text = day + "\n\n"
         data = self.connection[self.get_day_number(day)]
-        for key in data:
+        for key in sorted(data.keys()):
             if key != 3:
                 text += str(key) + ". " + self.get_lesson(data[key][0], data[key][1], self.get_time(key)) + "\n"
             else:
@@ -193,9 +201,13 @@ class Schedule:
                 except Exception:
                     kind = 0
                 text += str(key) + ". " + self.get_lesson(data[key][0], data[key][1], self.get_time(key, kind)) + "\n"
+        if len(data) == 0:
+            text += "Пар нет!"
         return text
 
+
 scheduleList = [Schedule(), Schedule(), Schedule(), Schedule()]
+
 
 def load():
 
