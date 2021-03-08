@@ -9,19 +9,21 @@ def mainKeyboard():
     main_keyboard = VkKeyboard(one_time=True)
 
     main_keyboard.add_button('Сегодня')
-    main_keyboard.add_button('Следующая пара')
-    main_keyboard.add_line()
-
     main_keyboard.add_button('Завтра')
-    main_keyboard.add_openlink_button('Новости', 'https://vk.com/pressyourgrouphere')
+    main_keyboard.add_button('Расписание')
     main_keyboard.add_line()
 
-    main_keyboard.add_button('Расписание')
+    main_keyboard.add_button('Следующая пара')
+    main_keyboard.add_button('Поиск преподавателей')
+    main_keyboard.add_line()
+
+    main_keyboard.add_openlink_button('Новости', 'https://vk.com/pressyourgrouphere')
     main_keyboard.add_line()
 
     main_keyboard.add_button('Настройки', color=VkKeyboardColor.PRIMARY)
 
     return main_keyboard
+
 
 def scheduleKeyboard(short_selected_week):
     schedule_keyboard = VkKeyboard(one_time=True)
@@ -128,3 +130,16 @@ def notificationKeyboard(event, personID):
                   {'peer_id': event.user_id, 'keyboard': notification_keyboard.get_keyboard(),
                    'random_id': get_random_id(),
                    'message': 'Настройки загружены. Для изменения нажмите на соответствующую кнопку.'})
+        
+def lessonKeyboard(keys):
+    lesson_keyboard = VkKeyboard(one_time=True)
+
+    for key in keys:
+        lesson_keyboard.add_button("Дисциплина " + str(key))
+        if key % 3 == 0:
+           lesson_keyboard.add_line()
+
+    lesson_keyboard.add_line()
+    lesson_keyboard.add_button('Главная', color=VkKeyboardColor.PRIMARY)
+
+    return lesson_keyboard
