@@ -1,7 +1,7 @@
 import mysql.connector as db
 
 token = "press your VK token here"
-admin_id = 0 #press your ID here
+admin_id = [0] #press your ID here
 
 def connectDB(dbConnection=None):
     try:
