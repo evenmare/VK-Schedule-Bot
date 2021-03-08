@@ -22,7 +22,7 @@ def notificationFunc():
         if timeNotificationType != False:
 
             day_now = time.localtime(time.time()).tm_yday
-            type_of_week_now = (day_now - Info.Data.start_day) % 28 // 7
+            type_of_week_now = (day_now - Info.Data.start_day) % 28 // 7 % 4
             day_of_week_now = time.localtime(time.time()).tm_wday + 1
 
             if day_of_week_now != 7:
@@ -35,6 +35,16 @@ def notificationFunc():
                 else:
                     if timeNotificationType == "evening":
                         day_of_week_now += 1
+                    if day_of_week_now != 7:
+                        message = creatingFullMessage(timeNotificationType, type_of_week_now, day_of_week_now)
+                        sendingMessage(timeNotificationType, message)
+
+            else:
+
+                if timeNotificationType == "evening":
+                    day_of_week_now = 1
+                    type_of_week_now = (type_of_week_now + 1) % 4
+
                     message = creatingFullMessage(timeNotificationType, type_of_week_now, day_of_week_now)
                     sendingMessage(timeNotificationType, message)
 
