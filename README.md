@@ -1,6 +1,6 @@
 # VK-Schedule-Bot
  
-бота я написал, описание писать не буду (пока)
+в процессе написания исчерпывающего гайда
 
 ## requirements
 
@@ -14,6 +14,12 @@ longapi, 5.120+
 - Database *name_your_db*: 
 - Table *you_can_name_it, build_personal_data.py*: 
 - Columns perID [INT], perName [STRING], 30minNotifications [TINYINT 1], 5minNotifications [TINYINT 1], eveningNotifications [TINYINT 1], morningNotifications [TINYINT 1],    localLessons [TINYINT 1], distantLessons [TINYINT 1]
+
+### jsons
+1. locations.json (информация о месте проведения): 
+   - [ {lesson_id *(similar to build_data/Data/lessons dict)*: [lecture location, seminar location, lab location]} **x4** ]
+2. connection.json (само расписание):
+   - [ {day_number: {lesson_number: [lesson_id, lesson_type_id *(similar to build_data/Data/lessons_type dict)* **x4** ]
 
 ## управление ботом через сообщения
 
