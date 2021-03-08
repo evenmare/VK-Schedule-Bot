@@ -23,6 +23,7 @@ main_keyboard = vk_keyboards.mainKeyboard()
 settings_keyboard = vk_keyboards.settingsKeyboard()
 schedule_keyboard = vk_keyboards.scheduleKeyboard
 donate_keyboard = vk_keyboards.donateKeyboard()
+lesson_keyboard = vk_keyboards.lessonKeyboard(data.teachers.keys())
 
 def dayFunc(day_of_week_now, type_of_week_now, week_message, event, request, keyboard=main_keyboard):
     day_message = week_message
@@ -63,7 +64,7 @@ def event_listening():
                     personName = user = vk.method("users.get", {"user_ids": personID})[0]['first_name']
                     day_now = time.localtime(time.time()).tm_yday
                     day_of_week_now = time.localtime(time.time()).tm_wday + 1
-                    type_of_week_now_number = (day_now - data.start_day) % 28 // 7
+                    type_of_week_now_number = (day_now - data.start_day) % 28 // 7 % 4
                     type_of_week_now = data.weeks[type_of_week_now_number]
                     short_type_of_week_now = data.short_weeks[type_of_week_now_number]
                     number_of_week_now = (day_now - data.start_day) // 7 + 1
@@ -132,7 +133,7 @@ def event_listening():
                         if day_of_week_now != 7:
                             dayFunc(day_of_week_now + 1, type_of_week_now_number, week_message, event, request)
                         else:
-                            dayFunc(1, type_of_week_now_number + 1, "Неделя " + str(number_of_week_now + 1) + ", " + data.weeks[type_of_week_now_number + 1] + "\n",
+                            dayFunc(1, (type_of_week_now_number + 1) % 4, "Неделя " + str(number_of_week_now + 1) + ", " + data.weeks[(type_of_week_now_number + 1) % 4] + "\n",
                                     event, request)
 
                     elif request == "Настройки":
@@ -204,7 +205,7 @@ def event_listening():
                                    'random_id': get_random_id(),
                                    'message': data.Educate.phrases[random.randint(0, len(data.Educate.phrases) - 1)]})
 
-                    elif '*** ' in request and event.user_id == admin_id:
+                    elif '*** ' in request and event.user_id in admin_id:
                         try:
                             change = [change[0], change[1]]
                             change.append(full_request[4:].split(" "))
@@ -212,7 +213,7 @@ def event_listening():
                             if len(change[2]) == 2:
                                 if change[2][1] == "/":
                                     vk.method('messages.send',
-                                              {'peer_id': admin_id,
+                                              {'peer_id': event.user_id,
                                                'random_id': get_random_id(),
                                                'message': "Удалить " + change[2][0] + " пару\n" +
                                                    scheduleList[int(change[0])].get_lesson(scheduleList[int(change[0])].connection[int(change[1])][int(change[2][0])][0],
@@ -220,109 +221,116 @@ def event_listening():
                             else:
 
                                 vk.method('messages.send',
-                                          {'peer_id': admin_id,
+                                          {'peer_id': event.user_id,
                                            'random_id': get_random_id(),
                                            'message': str(change[2][0]) + ". " + data.lessons[int(change[2][1])] + "\n" +
                                                       data.lessons_type[int(change[2][2])] + "\n" + change[2][3]})
 
                                 if len(change[2]) > 4:
                                     vk.method('messages.send',
-                                              {'peer_id': admin_id,
+                                              {'peer_id': event.user_id,
                                                'random_id': get_random_id(),
                                                'message': data.lessons_time[3][int(change[2][4])][0]})
 
                         except Exception:
                             vk.method('messages.send',
-                                      {'peer_id': admin_id,
+                                      {'peer_id': event.user_id,
                                        'random_id': get_random_id(),
                                        'message': 'Смешно?'})
 
-                    elif '** ' in request and event.user_id == admin_id:
+                    elif '** ' in request and event.user_id in admin_id:
                         try:
                             change = [change[0]]
                             change.append(request[3])
 
                             vk.method('messages.send',
-                                      {'peer_id': admin_id,
+                                      {'peer_id': event.user_id,
                                        'random_id': get_random_id(),
                                        'message': data.days_of_week[int(change[1])]})
 
                             vk.method('messages.send',
-                                      {'peer_id': admin_id,
+                                      {'peer_id': event.user_id,
                                        'random_id': get_random_id(),
                                        'message': json.dumps(data.lessons, ensure_ascii=False)})
 
                             if '/' in request:
                                 scheduleList[int(change[0])].connection.update({int(change[1]): {}})
                                 vk.method('messages.send',
-                                          {'peer_id': admin_id,
+                                          {'peer_id': event.user_id,
                                            'random_id': get_random_id(),
                                            'message': 'Обновлено.'})
 
                         except Exception:
                             vk.method('messages.send',
-                                      {'peer_id': admin_id,
+                                      {'peer_id': event.user_id,
                                        'random_id': get_random_id(),
                                        'message': 'Смешно?'})
 
 
-                    elif "* " in request and event.user_id == admin_id:
+                    elif "* " in request and event.user_id in admin_id:
                         change = []
                         change.append(request[2])
 
-                        vk.method('messages.send',
-                                  {'peer_id': admin_id,
-                                   'random_id': get_random_id(),
-                                   'message': data.short_weeks[int(change[0])]})
+                        try:
+                            vk.method('messages.send',
+                                      {'peer_id': event.user_id,
+                                       'random_id': get_random_id(),
+                                       'message': data.short_weeks[int(change[0])]})
+                        except Exception:
+                            vk.method('messages.send',
+                                      {'peer_id': event.user_id,
+                                       'random_id': get_random_id(),
+                                       'message': "При выборе недели произошла ошибка."})
 
-                    elif request == "/off" and event.user_id == admin_id:
+                    elif request == "/off" and event.user_id in admin_id:
                         data.Notification.status = False
                         vk.method('messages.send',
-                                  {'peer_id': admin_id,
+                                  {'peer_id': event.user_id,
                                    'random_id': get_random_id(),
                                    'message': 'Уведомления выключены!'})
 
-                    elif request == "/on" and event.user_id == admin_id:
+                    elif request == "/on" and event.user_id in admin_id:
                         data.Notification.status = True
                         vk.method('messages.send',
-                                  {'peer_id': admin_id,
+                                  {'peer_id': event.user_id,
                                    'random_id': get_random_id(),
                                    'message': 'Уведомления включены!'})
 
                     elif "//" in request:
-                        vk.method('messages.send', {'peer_id': admin_id, 'keyboard': settings_keyboard.get_keyboard(),
-                                                    'random_id': get_random_id(),
-                                                    'message': "СООБЩЕНИЕ ОБ ОШИБКЕ \n @id" + str(event.user_id) + "\n" + request})
+                        for id in admin_id:
+                            vk.method('messages.send', {'peer_id': id, 'keyboard': settings_keyboard.get_keyboard(),
+                                                        'random_id': get_random_id(),
+                                                        'message': "СООБЩЕНИЕ ОБ ОШИБКЕ \n @id" + str(event.user_id) + "\n" + full_request})
                         vk.method('messages.send',
                                   {'peer_id': event.user_id, 'keyboard': settings_keyboard.get_keyboard(),
                                    'random_id': get_random_id(),
                                    'message': "Сообщение отправлено. Спасибо!"})
 
-                    elif "%" in request and event.user_id == admin_id:
+                    elif "%" in request and event.user_id in admin_id:
                         users = person.selectAllUsers()
                         for user_id in users:
                             vk.method('messages.send',
                                       {'peer_id': user_id, 'keyboard': main_keyboard.get_keyboard(),
                                        'random_id': get_random_id(),
-                                       'message': "Сообщение от @evenmare:\n" + request[1:]})
+                                       'message': "Сообщение от старосты:\n" + full_request[1:]})
 
-                    elif '^z' in request and event.user_id == admin_id:
+                    elif '^z' in request and event.user_id in admin_id:
                         try:
                             load()
                             from build_data import scheduleList as scheduleList
 
                             vk.method('messages.send',
-                                      {'peer_id': admin_id,
+                                      {'peer_id': event.user_id,
                                        'random_id': get_random_id(),
                                        'message': 'Откат прошел успешно.'})
 
                         except Exception:
                             vk.method('messages.send',
-                                      {'peer_id': admin_id,
+                                      {'peer_id': event.user_id,
                                        'random_id': get_random_id(),
                                        'message': 'Откат завершился с ошибкой.'})
 
-                    elif '^u' in request and event.user_id == admin_id:
+                    elif '^u' in request and event.user_id in admin_id:
                         try:
                             update_jsons()
                             load()
@@ -330,49 +338,49 @@ def event_listening():
                             from build_data import scheduleList as scheduleList
 
                             vk.method('messages.send',
-                                      {'peer_id': admin_id,
+                                      {'peer_id': event.user_id,
                                        'random_id': get_random_id(),
                                        'message': 'Обновление прошло успешно.'})
 
                         except Exception:
                             vk.method('messages.send',
-                                      {'peer_id': admin_id,
+                                      {'peer_id': event.user_id,
                                        'random_id': get_random_id(),
                                        'message': 'Обновление завершилось с ошибкой.'})
 
-                    elif '^d' in request and event.user_id == admin_id:
+                    elif '^d' in request and event.user_id in admin_id:
                         try:
                             scheduleList[int(change[0])].connection[int(change[1])].pop(int(change[2][0]), None)
                             vk.method('messages.send',
-                                  {'peer_id': admin_id,
+                                  {'peer_id': event.user_id,
                                    'random_id': get_random_id(),
                                    'message': 'Удалено.'})
                         except:
                             vk.method('messages.send',
-                                      {'peer_id': admin_id,
+                                      {'peer_id': event.user_id,
                                        'random_id': get_random_id(),
                                        'message': 'При обновлении в словаре возникла ошибка.'})
 
 
-                    elif '^' in request and event.user_id == admin_id:
+                    elif '^' in request and event.user_id in admin_id:
                         try:
                             if len(change[2]) > 4:
                                 scheduleList[int(change[0])].connection[int(change[1])].update({int(change[2][0]): [int(change[2][1]), int(change[2][2]), int(change[2][4]) + 1]})
                             else:
                                 scheduleList[int(change[0])].connection[int(change[1])].update({int(change[2][0]): [int(change[2][1]), int(change[2][2])]})
 
-                            if '.' in change[2][3]:
+                            if '.' in change[2][3] or "Дистанционно" in change[2][3]:
                                 scheduleList[int(change[0])].lessons_location[int(change[2][1])][int(change[2][2]) - 1] = "💻 " + change[2][3]
                             else:
                                 scheduleList[int(change[0])].lessons_location[int(change[2][1])][int(change[2][2]) - 1] = change[2][3]
 
                             vk.method('messages.send',
-                                      {'peer_id': admin_id,
+                                      {'peer_id': event.user_id,
                                        'random_id': get_random_id(),
                                        'message': 'Обновлено.'})
                         except:
                             vk.method('messages.send',
-                                      {'peer_id': admin_id,
+                                      {'peer_id': event.user_id,
                                        'random_id': get_random_id(),
                                        'message': 'При обновлении в словаре возникла ошибка.'})
 
@@ -403,6 +411,38 @@ def event_listening():
                                    'message': "Список команд:\n- Сегодня\n- Завтра\n- Следующая пара\n- Ч1/З1/Ч2/З2 (выбор недели, чтобы сбросить на текущую - Главная)\n- <День недели>"+
                                    "\n- Подключить/Отключить (подключение/отключение уведомлений)\n - Вечерние/Утренние/За 30 минут/За 5 минут/Очные/Дистанционные (включить/выключить уведомления)"})
 
+                    elif "Дисциплина " in request:
+                        disp_number = request[-2:]
+                        if " " in disp_number:
+                            disp_number = disp_number[1]
+                        disp_number = int(disp_number)
+
+                        message = data.lessons[disp_number] + "\n\n"
+
+                        if len(data.teachers[disp_number]) == 1:
+                            message += data.teachers[disp_number][0][0] + "\n" + data.teachers[disp_number][0][1]
+                        else:
+                            if data.teachers[disp_number][0][0] != "Нет информации":
+                                message += "Лекции:\n" + data.teachers[disp_number][0][0] + "\n" + data.teachers[disp_number][0][1] + "\n\n"
+                            if data.teachers[disp_number][1][0] != "Нет информации":
+                                message += "Семинары:\n" + data.teachers[disp_number][1][0] + "\n" + data.teachers[disp_number][1][1] + "\n\n"
+                            if data.teachers[disp_number][2][0] != "Нет информации":
+                                message += "Лабораторные:\n" + data.teachers[disp_number][1][0] + "\n" + data.teachers[disp_number][1][1]
+
+                        vk.method('messages.send',
+                                  {'peer_id': event.user_id, 'keyboard': lesson_keyboard.get_keyboard(),
+                                   'random_id': get_random_id(),
+                                   'message': message})
+
+                    elif request == "Поиск преподавателей":
+                        message = "❗ Выберите на клавиатуре одну из следующих дисциплин (или напишите номер дисциплины в формате: Дисциплина N):\n\n"
+
+                        for element in list(data.teachers.keys()):
+                            message += str(element) + ". " + data.lessons[element] + "\n"
+                        vk.method('messages.send',
+                                  {'peer_id': event.user_id, 'keyboard': lesson_keyboard.get_keyboard(),
+                                   'random_id': get_random_id(),
+                                   'message': message})
                     else:
                         vk.method('messages.send',
                                   {'peer_id': event.user_id, 'keyboard': main_keyboard.get_keyboard(),
@@ -413,7 +453,7 @@ def event_listening():
                         user_selected_week.pop(event.user_id)
 
     except requests.exceptions.RequestException:
-        vk.method('messages.send', {'peer_id': admin_id,
+        vk.method('messages.send', {'peer_id': admin_id[0],
                                     'random_id': get_random_id(),
                                     'message': "СООБЩЕНИЕ ОБ ОШИБКЕ"})
         event_listening()
